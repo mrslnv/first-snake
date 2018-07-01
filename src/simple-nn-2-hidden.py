@@ -43,7 +43,7 @@ logits2 = tf.matmul(relu2, W2) + b2
 
 y_ = tf.placeholder(tf.int32, [None],name="y_")
 
-loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits2,y_,name="loss")
+loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits2,labels=y_,name="loss")
 
 glob_init = tf.global_variables_initializer()
 sess.run(glob_init)

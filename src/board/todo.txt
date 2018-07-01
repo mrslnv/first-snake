@@ -1,0 +1,2 @@
+* loss over time
+* cross entropy - output for dummy simple input
