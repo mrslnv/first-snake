@@ -1,16 +1,21 @@
-1#from __future__ import print_function, division
+1  # from __future__ import print_function, division
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-# ToDo: REMOVE batch - simplify
+# ToDo: experiment with - adding back batch
+# ToDo: experiment with - without matrix W
+
+# ToDo: experiment with more steps
+# ToDo: experiment with more 2d input
 num_epochs = 100
 total_series_length = 50000
-truncated_backprop_length = 15
-state_size = 4
+truncated_backprop_length = 30
+state_size = 5
 num_classes = 2
 echo_step = 3
-num_batches = total_series_length//truncated_backprop_length
+num_batches = total_series_length // truncated_backprop_length
+
 
 def generateData():
     x = np.array(np.random.choice(2, total_series_length, p=[0.5, 0.5]))
@@ -19,41 +24,48 @@ def generateData():
 
     x = x.reshape((1, -1))  # The first index changing slowest, subseries as rows
 
-    #x = [1x50000 (1 row)]
+    # x = [1x50000 (1 row)]
 
     y = y.reshape((1, -1))
 
-    #y = [1x50000 (1 rows)]
+    # y = [1x50000 (1 rows)]
 
     return (x, y)
-# 5 x 15
-X_placeholder = tf.placeholder(tf.float32, [1,truncated_backprop_length])
-Y_placeholder = tf.placeholder(tf.int32, [1,truncated_backprop_length])
 
-# 1 x 4
-init_state = tf.placeholder(tf.float32, [1,state_size])
+
+# 5 x 15
+X_placeholder = tf.placeholder(tf.float32, [1, truncated_backprop_length], name="x")
+Y_placeholder = tf.placeholder(tf.int32, [1, truncated_backprop_length], name="y")
+init_state = (
+    tf.placeholder(tf.float32, [1, state_size], name="state_c"),
+    tf.placeholder(tf.float32, [1, state_size], name="state_h")
+)
+
 
 # 4 x 2
-W2 = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
+W2 = tf.Variable(np.random.rand(state_size, num_classes), dtype=tf.float32,name="W")
 # 1 x 2
-b2 = tf.Variable(np.zeros((num_classes)), dtype=tf.float32)
+b2 = tf.Variable(np.zeros((num_classes)), dtype=tf.float32,name="b")
 
 # unstack columns
 # inputs_series = tf.unstack(X_placeholder, axis=1)
-inputs_series = tf.split(axis=1,num_or_size_splits=15,value=X_placeholder)
+inputs_series = tf.split(value=X_placeholder, num_or_size_splits=truncated_backprop_length, axis=1)
 labels_series = tf.unstack(Y_placeholder, axis=1)
 # list: 1st input batch [1..5], 2nd input batch [1..5] )
 
-cell = tf.nn.rnn_cell.BasicLSTMCell(4)
-states_series, current_state = tf.nn.static_rnn(cell=cell,inputs=inputs_series,initial_state=init_state)
+cell = tf.nn.rnn_cell.BasicLSTMCell(state_size)
+# states_series, current_state = tf.nn.static_rnn(cell=cell,inputs=inputs_series,dtype=tf.float32)
+states_series, current_state = tf.nn.static_rnn(cell=cell, inputs=inputs_series, initial_state=init_state)
 
-logits_series = [tf.matmul(state, W2) + b2 for state in states_series] #Broadcasted addition
+logits_series = [tf.matmul(state, W2) + b2 for state in states_series]  # Broadcasted addition
 predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
 
-losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels) for logits, labels in zip(logits_series,labels_series)]
+losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels) for logits, labels in
+          zip(logits_series, labels_series)]
 total_loss = tf.reduce_mean(losses)
 
 train_step = tf.train.AdagradOptimizer(0.3).minimize(total_loss)
+
 
 def plot(loss_list, predictions_series, batchX, batchY):
     plt.subplot(2, 3, 1)
@@ -76,15 +88,15 @@ def plot(loss_list, predictions_series, batchX, batchY):
 
 
 with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
     plt.ion()
     plt.figure()
     plt.show()
     loss_list = []
 
     for epoch_idx in range(num_epochs):
-        x,y = generateData()
-        _current_state = np.zeros((1,state_size))
+        x, y = generateData()
+        _current_state = (np.zeros((1,state_size)),np.zeros((1,state_size)))
 
         print("New data, epoch", epoch_idx)
 
@@ -92,21 +104,21 @@ with tf.Session() as sess:
             start_idx = batch_idx * truncated_backprop_length
             end_idx = start_idx + truncated_backprop_length
 
-            batchX = x[:,start_idx:end_idx]
-            batchY = y[:,start_idx:end_idx]
+            batchX = x[:, start_idx:end_idx]
+            batchY = y[:, start_idx:end_idx]
 
             _total_loss, _train_step, _current_state, _predictions_series = sess.run(
                 [total_loss, train_step, current_state, predictions_series],
                 feed_dict={
-                    X_placeholder:batchX,
-                    Y_placeholder:batchY,
-                    init_state:_current_state
+                    X_placeholder: batchX,
+                    Y_placeholder: batchY,
+                    init_state : _current_state
                 })
 
             loss_list.append(_total_loss)
 
-            if batch_idx%100 == 0:
-                print("Step",batch_idx, "Loss", _total_loss)
+            if batch_idx % 100 == 0:
+                print("Step", batch_idx, "Loss", _total_loss)
                 plot(loss_list, _predictions_series, batchX, batchY)
 
 plt.ioff()

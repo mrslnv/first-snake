@@ -31,8 +31,8 @@ W2 = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
 b2 = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
 
 # Unpack columns
-inputs_series = tf.split(1, truncated_backprop_length, value=batchX_placeholder)
-labels_series = tf.unpack(batchY_placeholder, axis=1)
+inputs_series = tf.split(axis=1, num_or_size_splits=truncated_backprop_length, value=batchX_placeholder)
+labels_series = tf.unstack(batchY_placeholder, axis=1)
 
 # Forward passes
 cell = tf.nn.rnn_cell.BasicRNNCell(state_size)
