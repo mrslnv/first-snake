@@ -46,10 +46,14 @@ W2 = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
 # 1 x 2
 b2 = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
 
+print("Input X: ", batchX_placeholder.get_shape())
+
 # unstack columns
 inputs_series = tf.unstack(batchX_placeholder, axis=1)
 labels_series = tf.unstack(batchY_placeholder, axis=1)
 # list: 1st input batch [1..5], 2nd input batch [1..5] )
+
+print("Input series: ", len(inputs_series))
 
 # Forward pass
 current_state = init_state
