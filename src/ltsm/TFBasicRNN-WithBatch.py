@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 # ToDo: experiment with more steps
 # ToDo: experiment with more 2d input
 num_epochs = 100
-total_series_length = 250000
-truncated_backprop_length = 50
-state_size = 5
+total_series_length = 50000
+truncated_backprop_length = 15
+state_size = 4
 num_classes = 2
 echo_step = 3
-batch_size = 16
-num_batches = total_series_length //batch_size // truncated_backprop_length
+batch_size = 8
+num_batches = total_series_length // batch_size // truncated_backprop_length
 
 
 def generateData():
@@ -42,11 +42,10 @@ init_state = (
     tf.placeholder(tf.float32, [batch_size, state_size], name="state_h")
 )
 
-
 # 4 x 2
-W2 = tf.Variable(np.random.rand(state_size, num_classes), dtype=tf.float32,name="W")
+W2 = tf.Variable(np.random.rand(state_size, num_classes), dtype=tf.float32, name="W")
 # 1 x 2
-b2 = tf.Variable(np.zeros((num_classes)), dtype=tf.float32,name="b")
+b2 = tf.Variable(np.zeros((num_classes)), dtype=tf.float32, name="b")
 
 # unstack columns
 # inputs_series = tf.unstack(X_placeholder, axis=1)
@@ -95,9 +94,12 @@ with tf.Session() as sess:
     plt.show()
     loss_list = []
 
+    writer = tf.summary.FileWriter('summary-log', sess.graph)
+
     for epoch_idx in range(num_epochs):
         x, y = generateData()
-        _current_state = (np.zeros((batch_size,state_size)),np.zeros((batch_size,state_size)))
+        # _current_state = (np.zeros((batch_size, state_size)), np.zeros((batch_size, state_size)))
+        _current_state = (np.random.rand(batch_size, state_size), np.random.rand(batch_size, state_size))
 
         print("New data, epoch", epoch_idx)
 
@@ -113,7 +115,7 @@ with tf.Session() as sess:
                 feed_dict={
                     X_placeholder: batchX,
                     Y_placeholder: batchY,
-                    init_state : _current_state
+                    init_state: _current_state
                 })
 
             loss_list.append(_total_loss)
