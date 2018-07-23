@@ -66,9 +66,10 @@ newcell = lambda: tf.nn.rnn_cell.BasicLSTMCell(state_size, state_is_tuple=True)
 cell = tf.nn.rnn_cell.MultiRNNCell([newcell() for i in range(num_layers)], state_is_tuple=True)
 # states_series, current_state = tf.nn.static_rnn(cell=cell,inputs=inputs_series,dtype=tf.float32)
 
-print("Input shape:",inputs_series[0].get_shape())
-print("C shape:",rnn_tuple_state[0].c.get_shape())
-print("H shape:",rnn_tuple_state[0].h.get_shape())
+print("Steps(time):",len(inputs_series))
+print("Input shape:", inputs_series[0].get_shape())
+print("C shape:", rnn_tuple_state[0].c.get_shape())
+print("H shape:", rnn_tuple_state[0].h.get_shape())
 
 # For batch=8 and state=4 it looks like this:
 #     Input shape: (8, 1)
@@ -82,6 +83,11 @@ predictions_series = [tf.nn.softmax(logits) for logits in logits_series]
 
 losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels) for logits, labels in
           zip(logits_series, labels_series)]
+
+# ingnore 3 tree elements (echo_steps)
+# ToDo: is it better without first 3? proof?
+losses = losses[echo_step : ]
+
 total_loss = tf.reduce_mean(losses)
 
 train_step = tf.train.AdagradOptimizer(0.3).minimize(total_loss)
@@ -119,10 +125,10 @@ with tf.Session() as sess:
     for epoch_idx in range(num_epochs):
         x, y = generateData()
         # _current_state = (np.zeros((batch_size, state_size)), np.zeros((batch_size, state_size)))
-# init_state_hidden = tf.placeholder(tf.float32, [num_layers, batch_size, state_size])
-# init_state_output = tf.placeholder(tf.float32, [num_layers, batch_size, state_size])
-        _current_state_hidden = np.random.rand(num_layers,batch_size, state_size)
-        _current_state_output = np.random.rand(num_layers,batch_size, state_size)
+        # init_state_hidden = tf.placeholder(tf.float32, [num_layers, batch_size, state_size])
+        # init_state_output = tf.placeholder(tf.float32, [num_layers, batch_size, state_size])
+        _current_state_hidden = np.random.rand(num_layers, batch_size, state_size)
+        _current_state_output = np.random.rand(num_layers, batch_size, state_size)
 
         print("New data, epoch", epoch_idx)
 
